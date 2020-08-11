@@ -1,0 +1,526 @@
+---
+title: "Exploratory Data Analysis of Red Wine DataSet Using R"
+author: "Prashanth Reddy A"
+date: "7 May 2017"
+output: html_document
+---
+
+#Research
+The dataset is obtained from the https://docs.google.com/document/d/1qEcwltBMlRYZT-l699-71TzInWfk4W9q5rTCSvDVMpc/pub. The red-wine dataset is the first in the list.   
+Prior starting the project I searched for the optimal composition of Red Wine available in market. Later I plotted the composition of various variable in the Red Wine and compared them with the Optimal Composition I had found.   
+The report explores 1599 entries of Red Wine data set with 13 variables.   
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+
+###code to read in the csv into rstudio
+rw <- read.csv("wineQualityReds.csv")
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+
+###lets import all the libraries which we might use later
+library(ggplot2)
+library(gridExtra)
+library(GGally)
+library(scales)
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+
+###lets write functions for drawing the histograms, scatterplots. 
+plot_histogram <- function(variable, bin_width=0.01,fill='blue',color='black')
+{
+  p <- ggplot(aes_string(x = variable), data = rw) +
+         geom_histogram(binwidth = bin_width,color=color,fill=fill)+
+         theme(legend.position="none")
+  return(p)
+}
+
+plot_jitter_compare_bi <- function(x_variable,y_variable,opacity=1,color='#922B21')
+{
+  p <- ggplot(aes_string(x=x_variable,y=y_variable),data=rw)+
+         geom_jitter(alpha=opacity,color=color)
+  return(p)
+}
+
+plot_scatter_compare_mul <- function(x_variable, y_variable,opacity=1,color)
+{
+  p <- ggplot(aes_string(x=x_variable,y=y_variable),data=rw)+
+         geom_point(alpha=opacity,aes_string(color=color))
+  return(p)
+}
+
+```
+
+#Uni-Variate Plots Section  
+In this section, we analyse every variable in the dataset independent of the other variables.  
+Let us first have a look at the summary and structure of the Red Wine data set so as to have a clear picture of the variable in the data set.  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+summary(rw)
+str(rw)
+
+```
+
+Our data set consists of 13 variables and 1599 entries. The user_feedback variable is an additional variable added to enhance the readability of plots. So in all 14 variables exist now.  
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+
+
+#we create a new variable called total.acidity by adding the three acid variables
+rw$total.acidity=rw$fixed.acidity+rw$volatile.acidity+rw$citric.acid
+
+#the quality paramter is rated on the scale 1-10. let us convert it into a more understandable form. 
+rw$user_feedback <- ifelse(rw$quality <= 4 , "bad",
+                     ifelse(rw$quality <= 6, "medium","good"))
+rw$user_feedback <- as.factor(rw$user_feedback)
+rw$user_feedback <- ordered(rw$user_feedback, levels = c("bad", "medium", "good"))
+
+```
+
+##User Rating Plot : Quantitative & Qualitative
+The entries in the quality variable of the dataset were mapped to create a new variable names user_feedback for qualitative analysis. Rating of 0-4 was treated bad, 5-6 was treated medium and the rest were treated good. Below are the plots :  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#p1 stores the histogram for quality (quantitative)
+p1 <- plot_histogram('quality',1)+
+        scale_x_continuous(breaks=seq(0,10,1))+
+        ggtitle("1-10 rating plot")
+#p2 stores the histogram for user_feedback (qualitative)
+p2 <- ggplot(aes(user_feedback),data=rw)+
+        geom_bar(color="black",fill="blue")+
+        ggtitle("Good - Medium - Bad plot")
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+Majority of the wine users had rated the wine 5 or 6. Very few had rated it below 5. Few had rated it above 6. The qualitative plot reflects the same readings but in a more readable form. Most of them have rated the wine Medium, few have rated it as Good and very few have rated it Bad.   
+
+##Acidity Plot : Fixed and Volatile  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#p1 stores the histogram for fixed acidity
+p1 <- plot_histogram('fixed.acidity',1,'#FF5733')+
+        ggtitle("Fixed Acidity Plot")
+#p1 stores the histogram for volatile acidity
+p2 <- plot_histogram('volatile.acidity',0.1,'#FF5733')+
+        ggtitle("Volatile Acidity Plot")
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+As per the composition specified in the website : http://waterhouse.ucdavis.edu/whats-in-wine/red-wine-composition, fixed acidity of Red Wine must be 6000 mg/L which is 6 g/dm^3. The median of the fixed acidity plot appears somewhere near 7.90 g/dm^3. The mode seems to be at 7 g/dm^3. Though the values are larger than the value given in the website they are closer to it. Volatile  acidity of Red Wine must be 600 mg/L which is 0.6 g/dm^3. The median of volatile acidity is around 0.52 g/dm^3. The mode seems to be at around 0.7 g/dm^3.     
+
+##Total Acidity Plot : Tartaric + Acetic + Citric
+We have created a new variable called total.acidity by adding the 3 acid components present in out dataset.  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+plot_histogram('total.acidity',1,'#154360')+
+  ggtitle("Total Acidity Plot")
+
+```
+
+The plot shows that maximum number of samples have a total acidity around 8. Hence the mode shall be around 8. The median is 8.72 and mean is 9.12.  
+
+##Chlorides Plot  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+plot_histogram('chlorides',0.01,'#186A3B')+
+  coord_cartesian(xlim=c(quantile(rw$chlorides, 0.01),quantile(rw$chlorides, 0.95)))+
+  ggtitle('Chlorides Plot')
+
+```
+
+The plot shows that maximum number of samples have a chloride content around 0.08. Hence the mode shall be around 0.08. The median is 0.079 and mean is 0.087.       
+ 
+##Total Sulfur Dioxide and Sulphates Plot 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#p1 stores the histogram for fixed acidity
+p1 <- plot_histogram('total.sulfur.dioxide',25,'#1B4F72')+
+        scale_x_continuous(breaks=seq(0,300,25))+
+        coord_cartesian(xlim=c(0,quantile(rw$total.sulfur.dioxide, 0.99)))+
+        ggtitle("Total Sulfur Dioxide Plot")
+#p1 stores the histogram for volatile acidity
+p2 <- plot_histogram('sulphates',0.1,'#1B4F72')+
+        scale_x_continuous(breaks=seq(0,2,0.1))+
+        coord_cartesian(xlim=c(quantile(rw$sulphates, 0.01),
+                               quantile(rw$sulphates, 0.99)))+
+        ggtitle("Sulphates Plot")
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+Total Sulfur Dioxide Plot shows that majority of the samples have total sulfur dioxide content of 25. As per the summary median is 38 and mean is 46. Outliers which were removed in our code would be the reason for the higher value of mean and median.  
+Sulphate plot shows that majority of the samples have sulphate content of 0.6. As per the summary median is 0.62 and mean is 0.65.   
+
+##Sugar Content Plot  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#to plot histogram for residual sugar
+plot_histogram('residual.sugar',0.05,'#7D3C98')+
+  scale_x_log10(breaks = trans_breaks('log10', function(x) 10^x, n=10))+
+  coord_cartesian(xlim=c(quantile(rw$residual.sugar, 0.01),
+                         quantile(rw$residual.sugar, 0.99)))+
+  ggtitle("Sugar Plot")
+
+```
+
+The general threshold of perception of sweetness as per the link : http://www.jancisrobinson.com/articles/wines-that-are-medium is 2g/L which is 2 g/dm^3. Mean, median and mode seems to be around 2 g/dm^3. Even though most of the entries have appropriate sugar content. Wine samples corresponding to a few entries seems to have very high Sugar content (in the plot outliers have been removed). Values go as high as 15.5 g/dm^3 which is too high for a Red Wine. Diabetes Alert !  
+
+##Density Plot  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#to plot histogram for density
+plot_histogram('density',0.001,'#F39C12')+
+  ggtitle("Density Plot")+
+  scale_x_continuous(breaks=seq(0.99,1.005,0.001))
+
+```
+
+Most of the entries have density between 0.99 to 1 g/cm^3.   
+
+##pH Plot  
+A solution with pH of less than 7 is acidic and greater than 7 is basic. Let us analyse the pH of the entries in the data set.   
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#to plot histogram for pH
+plot_histogram('pH',0.1,'#E74C3C')+
+  ggtitle("pH Plot")+
+  scale_x_continuous(breaks=seq(2.7,4.1,0.1))
+
+```
+
+As expected all the entries fall into the acidic range as Red wine is acidic in nature. The mean and median of the sample lie around 3.3; pH of 3.3-3.6 is ideal for red wine.   
+
+##Alcohol Content Plot  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#to plot histogram for alcohol content
+plot_histogram('alcohol',0.5,'#1F618D')+
+  ggtitle("Alcohol Content Plot")+
+  scale_x_continuous(breaks=seq(8.5,14,0.5))
+
+```
+
+As per the details in the http://www.winecompanion.com.au/wine-essentials/wine-education/alcohol-content-in-red-wines, the alcohol of any red wine in excess of 14.5% (alcohol by volume) can be said to be high. Seems like only a few samples of Red Wine have alcohol content above 14.5%. So others won't Go High on drinking Red Wine. The mean and median appear at around 10% by volume.  
+
+#Bi-Variate Plots Section  
+In this section, we analyse the variables in the plot with respect to other variables. Here we shall analyse most of the variables with respect to the user_feedback. Doing so will provide information regarding the effect of various variables on the user_feedback. In all our Bi-Variate plots we shall consider the variable being tested as the X paramter. The index variable 'X' as the Y parameter. And the user_feedback variable shall be assigned to as the color.  
+
+##Correlation Plot
+Let us examine the correlation between every two variable using ggcorr. The plot is as shown below :   
+
+```{r, echo=FALSE, warning=FALSE}
+
+#ggcorr is a function available in ggplot2 library used to plot a graph with correlation values between every two variable combination available.
+#we will be neglecting the last variable which is user_feedback as it is a non numeric data.
+#label=TRUE sets the label value and displays correlation value in boxes
+ggcorr(rw[,-1],hjust = 0.75, size = 2.5,label=TRUE,label_size = 3)
+
+```
+
+Those pairs with a colour shade closer to the shade corresponding to +1 or -1 have a stronger correlation. Those closer to +1 have a positive correlation (with increase in  value of one variable other variable also increases) and those closer to -1 have a negative correlation (with increase in value of one variable other variable decreases).   
+
+##Effect of fixed and volatile acidity on the User Feedback  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#p1 stores scatter plot of fixed.acidity coloured using user_feedback
+p1 <- plot_jitter_compare_bi('fixed.acidity','user_feedback',0.1)+
+        scale_color_brewer(type = 'qual', palette = 2)+
+        scale_x_continuous(breaks=seq(4.5,16,1))+
+        ggtitle("Fixed Acidity Plot for various User Feedback")
+#p2 stores scatter plot of volatile.acidity coloured using user_feedback
+p2 <- plot_jitter_compare_bi('volatile.acidity','user_feedback',0.1)+
+        scale_color_brewer(type = 'qual', palette = 2)+
+        scale_x_continuous(breaks=seq(0.1,1.6,0.1))+
+        ggtitle("Volatile Acidity Plot for various User Feedback")
+grid.arrange(p1,p2,ncol=1)
+
+```
+
+In the fixed acidity plot, we see most of the wine samples with medium rating are densely populated in the region between 6.0 and 9.0 g/dm^3. Samples rated good are sparcely populated. Inspite of the sparse population they seem to be having comparitively higher count in the acidity range 7.0 to 9.0 g/dm^3.  
+In the volatile acidity plot, we see most of the wine samples with medium rating are populated densely in the acidity range of 0.35 to 0.75 g/dm^3. Samples with good rating, though less populated, are seen more in the acidity range of 0.25 to 0.40 g/dm^3.  
+
+##Effect of total acidity on the User Feedback  
+We obtain the total acidity by adding the contents of Tartaric acid(fixed acidity), Acetic acid(volatile acidity) and Citric acid.   
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot the scatter plot for total.acidity coloured using user_feedback
+plot_jitter_compare_bi('total.acidity','user_feedback',
+                     0.1,'#154360')+
+  scale_color_brewer(type = 'qual', palette = 2)+
+  xlab('Total Acidity')+
+  scale_x_continuous(breaks = seq(5,18,1))+
+  ggtitle("Total Acidity Plot for various User Feedback")
+
+```
+
+Medium rated samples are more clustered and densely populated in the total acidity range of 6.5 to 9.5 g/dm^3. Good rated samples appear scattered all over. They seem to be more in the acidity range of 7.75 g/dm^3 to 10.0 g/dm^3.  
+
+##Effect of pH on the User Feedback  
+We know that greater the pH value, lesser will be its acidity value. It makes more sense to relate to the inverse pH value so that we can draw some correlated results.  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot the scatter plot for inverse pH coloured using user_feedback
+plot_jitter_compare_bi('1/pH','user_feedback',0.1,'#4A235A')+
+  ggtitle("Inverse pH plot for various User Feedback")+
+  scale_x_continuous(breaks=seq(0.24,0.37,0.01))
+
+```
+
+Here we can see that the samples with inverse pH range in the mid region i.e, between 0.28 and 0.32. Bad samples appear scattered more to the left of 0.31.  
+
+##Effect of Sugar and Chloride content on the User Feedback  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot the scatter plot for residual.sugar coloured using user_feedback
+p1 <- plot_jitter_compare_bi('residual.sugar','user_feedback',0.1,'#6E2C00')+
+        coord_cartesian(xlim=c(quantile(rw$residual.sugar,0.01),
+                               quantile(rw$residual.sugar, 0.99)))+
+        scale_x_continuous(breaks=seq(0,8,0.5))+
+        ggtitle("Sugar Plot for various User Feedback")
+
+p2 <- plot_jitter_compare_bi('chlorides','user_feedback',0.1,'#6E2C00')+
+        coord_cartesian(xlim=c(quantile(rw$chlorides, 0.01),
+                               quantile(rw$chlorides, 0.95)))+
+        scale_x_continuous(breaks=seq(0,0.12,0.02))+
+        ggtitle("Chloride Plot for various User Feedback")
+grid.arrange(p1,p2,ncol=1)
+
+```
+
+Most of the medium rated samples in the Sugar plot are densely populated in the range of 1.5 to 3.0 g/dm^3. Good rated samples appear more densely in the region between 1.5 and 2.75 of residual sugar.   
+Coming to Chloride Plot the medium rated samples appear to be clustered in the region between 0.06 to 0.125 g/dm^3 chloride level. Good rated samples appear in the region 0.06 to 0.08 g/dm^3.   
+
+##Effect of Sulphur Dioxide content on the User Feedback  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot the scatter plot for total.sulfur.dioxide coloured using user_feedback
+
+plot_jitter_compare_bi('total.sulfur.dioxide','user_feedback',0.1,'#17202A')+
+  coord_cartesian(xlim=c(0,150))+
+  scale_x_continuous(breaks=seq(0,150,10))+
+  ggtitle("Sulphur Dioxide Plot for various User Feedback")
+
+```
+
+Most of the medium rated samples in the Sulfur dioxide plot are densely populated in the range of 10 to 60 g/dm^3. Good rated samples are distributed evenly throughout the distributed beginning from 10 to 30 g/dm^3.  
+
+##Effect of Density on the User Feedback  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot the scatter plot for density coloured using user_feedback
+plot_jitter_compare_bi('density','user_feedback',0.1,'#6E2C00')+
+  scale_x_continuous(breaks=seq(0.990,1.005,0.001))+
+  ggtitle("Density Plot for various User Feedback")
+
+```
+
+Medium rated wine is more populated in the density range off 0.9945 to 0.999. Good samples are more populated in the range 0.9940 to 0.9975.   
+
+##Effect of Alcohol content on the User Feedback  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot the scatter plot for alcohol coloured using user_feedback
+plot_jitter_compare_bi('alcohol','user_feedback',0.1,'#424949')+
+  scale_x_continuous(breaks=seq(8,15,0.5))+
+  ggtitle("Alcohol Plot for User Feedback")
+
+```
+
+Those samples with medium rating appear more in the alcohol range of 9.0 to 11.5 % by volume. Good samples are more populated in the alcohol range of 10.5 to 12.5 % by volume.  
+
+#Multi-Variate Plots Section  
+In this section we analyse multiple variables together to see the effect of one variable on another.  
+
+##Effect of Acidity and pH on the User Feedback  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot scatter plot to see relationship between acidity and inverse pH wrt user_feedback
+plot_scatter_compare_mul('total.acidity','1/pH',0.4,'factor(quality)')+
+  geom_smooth()+
+  scale_x_continuous(breaks=seq(5,17,1))+
+  scale_color_brewer(type='seq',guide=guide_legend(title='Quality'))+
+  ggtitle("Plot comparing the effect of Acidity and pH on Feedback")
+
+```
+
+The plot depicts a clear relationship between acidity and inverse pH. The samples appear most clustered in the acidity range of 6.5 to 11.0 and the Inverse pH range of 0.275 to 0.325. they don't seem to be related to the feedback which user gives.  
+Now let us look at the correlation result of total acidity and inverse pH.  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+cor.test(rw$total.acidity, 1/rw$pH,method="pearson")
+
+```
+
+A Correlation result of 0.687 is sufficient to confirm that the variables are correlated.  
+
+##Effect of Density and Alcohol on the User Feedback  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot scatter plot to see relationship between density and alcohol content pH wrt user_feedback
+plot_scatter_compare_mul('density','alcohol',0.4,'factor(quality)')+
+  geom_smooth()+
+  coord_cartesian(xlim=c(0.99,quantile(rw$density, 0.99)))+
+  scale_x_continuous(breaks=seq(0.99,1.1,0.001))+
+  scale_y_continuous(breaks=seq(9,15,1))+
+  scale_color_brewer(type='seq',guide=guide_legend(title='Quality'),palette=2 )+
+  ggtitle("Plot comparing the effect of Density and Alcohol on Feedback")
+```
+
+This plot would be very helpfull in predicting the User Feedback. Here we observe that medium rated samples appear most in the density range of 0.9955 to 0.9985 and the alcohol range of 9.0 to 10.5. Good rated samples are more populated in the denity range of 0.994 to 0.997 and in the alcohol range of 11.0 to 12.5.  
+Let us have a look at the plot obtained using geom_smooth()  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#to the above plot we add geom_smooth()
+plot_scatter_compare_mul('density','alcohol',0.4,'factor(quality)')+
+  geom_smooth()+
+  coord_cartesian(xlim=c(0.99,quantile(rw$density, 0.99)))+
+  scale_color_brewer(type='seq',guide=guide_legend(title='Quality'),palette = 3)+
+  ggtitle("Plot comparing the effect of Density and Alcohol on Feedback")+
+  geom_smooth()
+
+```
+
+Let us now divide the above plot into 3 different plots based on the feedback users give.  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#we split the above plot into 3 plots based on the user_feedback
+ggplot(aes(x=density,y=alcohol), data=rw)+
+  geom_smooth(aes(color = user_feedback))+
+  facet_wrap(~user_feedback)
+
+```
+
+Good rated samples seem to take a smooth path. Implies that the data is well distributed along the path. Medium rated samples aslo seem to have a smooth path but it falls and then rises at density of 0.9975. Bad rated samples do not take a smooth path. The path is very bumpy.  
+Now let us see if Density and Alcohol are correlated or not :  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+cor.test(rw$density, rw$alcohol,method="pearson")
+
+```
+
+The correlation value of -0.496 implies they are inversely correlated. With increase in one paramater the other parameter shall decrease.  
+
+##Effect of Chloride and Sulphur Dioxide level on User Feedback
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot scatter plot to see relationship between chlorides and sulfurdioxide wrt user_feedback
+plot_scatter_compare_mul('chlorides','total.sulfur.dioxide',0.4,'factor(quality)')+
+  geom_smooth()+
+  scale_x_continuous(breaks=seq(0,0.7,0.05))+
+  scale_y_continuous(breaks=seq(0,300,25))+
+  scale_color_brewer(type='seq',guide=guide_legend(title='Quality'),palette = 5)+
+  ggtitle("Plot comparing the Chlorides and Sulphur Dioxide on Feedback")
+
+```
+
+The plot shows that most or almost all the medium rated samples appear in the chloride range of 0.05 to 0.125 and sulphur dioxide range of 0 to 150. Bad samples seem to have larger chloride values and smaller sulphur dioxide values where as good samples seem to have smaller chloride values and comparitively larger sulphur dioxide values.  
+
+##Effect of pH and Alcohol on the User Feedback  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot scatter plot to see relationship between 10^pH and alcohol wrt user_feedback
+plot_scatter_compare_mul('10^pH','alcohol',0.4,'factor(quality)')+
+  geom_smooth()+
+  scale_x_continuous(breaks=seq(0,10000,1000))+
+  scale_y_continuous(breaks=seq(0,14,0.5))+
+  scale_color_brewer(type='seq',guide=guide_legend(title='Quality'),palette = 6)+
+  ggtitle("Plot comparing the effect of 10th Power of pH and Alcohol on Feedback")
+
+```
+
+This plot tells us how pH and Alcohol can together effect the User Feedback. We can see that medium rated samples mostly fall in the 10^pH range of 1000 to 3000 and alcohol range of 9.0 to 11.0 % by volume. Good samples seem to appear in the higher alcohol levels for the same pH range. Bad Samples seem to appear for the same alcohol range for an higher 10^pH value.  
+
+#Final Plots and Summary  
+##Plot One  
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#p1 stores the histogram for quality (quantitative)
+p1 <- plot_histogram('quality',1)+
+        scale_x_continuous(breaks=seq(0,10,1))+
+        ggtitle("1-10 rating plot")+
+        xlab('Quantitative Rating')
+
+#p2 stores the histogram for user_feedback (qualitative)
+p2 <- ggplot(aes(user_feedback),data=rw)+
+        geom_bar(color="black",fill="blue")+
+        ggtitle("Good - Medium - Bad plot")+
+        xlab('Qualitative Rating')
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+The above plot is to show how using a variable we created a new variable to increase its understandability. We used Quality variable to create user_feedback variable.  
+The entries in the quality variable of the dataset were mapped to create a new variable name user_feedback for qualitative analysis. Rating of 0-4 was treated bad, 5-6 was treated medium and the rest were treated good.  
+Majority of the wine users had rated the wine 5 or 6. Very few had rated it below 5. Few had rated it above 6. The qualitative plot reflects the same readings but in a more readable form. Most of them have rated the wine Medium, few have rated it as Good and very few have rated it Bad.  
+
+
+##Plot Two
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot scatter plot to see relationship between density and alcohol content pH wrt user_feedback
+plot_scatter_compare_mul('density','alcohol',0.4,'factor(quality)')+
+  coord_cartesian(xlim=c(0.99,quantile(rw$density, 0.99)))+
+  geom_smooth()+
+  scale_color_brewer(type='seq',guide=guide_legend(title='Quality'),palette=8)+
+  ggtitle("Plot comparing the effect of Density and Alcohol on Feedback")+
+  xlab('Density (g/cm^3)')+
+  ylab('Alcohol (% by volume)')
+
+```
+
+This plot would be very helpfull in predicting the User Feedback. Here we observe that medium rated samples appear most in the density range of 0.9955 to 0.9985 and the alcohol range of 9.0 to 10.5. Good rated samples are more populated in the denity range of 0.994 to 0.997 and in the alcohol range of 11.0 to 12.5. The smooth curve shows us that the samples are distributed evenly along its course.  
+
+##Plot Three
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#plot scatter plot to see relationship between 10^pH and alcohol wrt user_feedback
+plot_scatter_compare_mul('10^pH','alcohol',0.4,'factor(quality)')+
+  geom_smooth()+
+  scale_x_continuous(breaks=seq(0,10000,1000))+
+  scale_y_continuous(breaks=seq(0,14,0.5))+
+  scale_color_brewer(type='seq',guide=guide_legend(title='Quality'),palette = 7)+
+  ggtitle("Plot comparing the effect of 10th Power of pH and Alcohol on Feedback")+
+  xlab('10th Power of pH (unitless)')+
+  ylab("Alcohol (% by volume)")
+
+```
+
+The above plot is to show the Effect of pH of the Wine and Alcohol content on the User Feedback.This plot tells us how pH and Alcohol can together effect the User Feedback. We can see that medium rated samples mostly fall in the 10^pH range of 1000 to 3000 and alcohol range of 9.0 to 11.0 % by volume. Good samples seem to appear in the higher alcohol levels for the same pH range. Bad Samples seem to appear for the same alcohol range for an higher 10^pH value.  
+
+#Reflection
+The main intention of this Project was to determine why a sample of red wine was rated as Good, Medium or Bad. For the same purpose I developed Uni, Bi and Multi-Variate Plots to analyse the dataset. We analysed the dataset stage by stage to reach the final results. First we plotted Uni-Variate plots and then Bi-Variate and lastly Multi-Variate plots.  
+There were a number of difficulties while analysing data. First difficulty was choosing appropriate parameters for a plot which would give required results or atleast give some insight of the data. Secondly the difficulty in figuring out the distribution where in the points from all types of feedback were mixed up.  
+I found success after resolving every difficulty. Choosing appropriate points for the plot and resolving the mixed up cluster of points were all my successes.
+The data set given to me was good. But not sufficient for complete and perfect analysis. Few more variables can be added such as the type of grapes that were used, the region from where the wine comes from, how old the wine is.  
